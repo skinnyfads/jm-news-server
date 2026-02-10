@@ -1,98 +1,102 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# JM-News Server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The server is implemented as a **NestJS** application using **SQLite** (via TypeORM) and **Kuromoji** for tokenization.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 1. Setup & Startup
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+### Dependencies
+JMDict is required for the server to run. A script is provided to download the latest version.
 
 ```bash
-$ pnpm install
+# Download JMDict (100MB+)
+pnpm download:jmdict
+
+# Start Server
+pnpm start:dev
 ```
 
-## Compile and run the project
+### Architecture
+- **JMDictService**: Loads dictionary into memory on startup (~450k entries).
+- **TokenizerService**: Wraps Kuromoji, stems words, and attaches JMDict definitions.
+- **SQLite**: Stores `articles` (with tokens) and `vocabulary_references`.
 
-```bash
-# development
-$ pnpm run start
+---
 
-# watch mode
-$ pnpm run start:dev
+## 2. API Verification Results
 
-# production mode
-$ pnpm run start:prod
+### 1. Create Vocabulary
+We choose words the user wants to study.
+
+**Request:** `POST /api/vocabularies`
+```json
+{ "dictKey": "食べる", "level": 5 }
 ```
 
-## Run tests
+### 2. Generate Article
+Simulating the "AI" step by posting raw text. The server tokenizes it and finds our target vocab.
 
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+**Request:** `POST /api/articles/generate`
+```json
+{
+  "title": "Test Article",
+  "text": "今日は美味しい果物を食べました。",
+  "vocabIds": ["<UUID_FROM_STEP_1>"]
+}
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+**Response (excerpt):**
+```json
+{
+  "tokensJson": [
+    {
+      "surface": "食べ",
+      "base": "食べる",
+      "reading": "たべる",
+      "meanings": ["to eat", ...],
+      "isTarget": true  // <-- Correctly matched!
+    }
+  ]
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 3. Doomscroll Feed
+Lightweight preview for the timeline.
 
-## Resources
+**Request:** `GET /api/articles/feed`
+**Response:**
+```json
+[
+  {
+    "id": "...",
+    "title": "Test Article",
+    "previewText": "今日は美味しい果物を食べました。" // No heavy tokens
+  }
+]
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### 4. Full Article
+Rich data for the reader view.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Request:** `GET /api/articles/{id}`
+**Response:**
+```json
+{
+  "title": "Test Article",
+  "tokens": [
+    { "surface": "今日", "base": "今日", ... },
+    { "surface": "は", "base": "は", ... },
+    ...
+  ]
+}
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 3. Key Files
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| File | Purpose |
+|------|---------|
+| [jmdict.service.ts](file:///home/irlan/dev/irlan-dev/jpnfads-dev/jm-news/jm-news-server/src/jmdict/jmdict.service.ts) | Dictionary loader & indexer |
+| [tokenizer.service.ts](file:///home/irlan/dev/irlan-dev/jpnfads-dev/jm-news/jm-news-server/src/tokenizer/tokenizer.service.ts) | Pipeline: Text → Kuromoji → JMDict |
+| [article.service.ts](file:///home/irlan/dev/irlan-dev/jpnfads-dev/jm-news/jm-news-server/src/article/article.service.ts) | Article generation logic |
+| [download-jmdict.ts](file:///home/irlan/dev/irlan-dev/jpnfads-dev/jm-news/jm-news-server/scripts/download-jmdict.ts) | Robust download script |
