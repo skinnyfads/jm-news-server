@@ -13,7 +13,7 @@ import { Article } from './article/article.entity.js';
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'client'),
-      exclude: ['/api/(.*)'],
+      exclude: ['/api/{*path}'],
     }),
     TypeOrmModule.forRoot({
       type: 'better-sqlite3',
