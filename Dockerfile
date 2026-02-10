@@ -4,11 +4,18 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
+# Install unzip for dictionary download
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src/ src/
+COPY scripts/ scripts/
+
+# Download dictionary
+RUN pnpm run download:jmdict
 
 RUN pnpm build
 
@@ -22,10 +29,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/data ./data
 COPY client/ client/
-COPY scripts/ scripts/
-
-RUN mkdir -p data
 
 EXPOSE 3000
 
