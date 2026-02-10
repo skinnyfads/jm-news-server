@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JM-News</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <div class="logo" onclick="app.loadFeed()">JM-News</div>
+            <div class="actions">
+                <button onclick="app.showGenerateModal()">+</button>
+            </div>
+        </header>
+
+        <main id="content">
+        </main>
+
+        <div id="generate-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Generate Article</h3>
+                <input type="text" id="gen-title" placeholder="Title">
+                <textarea id="gen-text" placeholder="Paste Japanese text here..." rows="10"></textarea>
+                <div class="modal-actions">
+                    <button onclick="app.closeGenerateModal()" class="btn-sec">Cancel</button>
+                    <button onclick="app.submitGenerate()" class="btn-pri">Generate</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="token-popup" class="popup hidden" onclick="app.closePopup()">
+            <div class="popup-content" onclick="event.stopPropagation()">
+                <div class="popup-header">
+                    <span id="popup-kanji"></span>
+                    <span id="popup-reading"></span>
+                </div>
+                <div id="popup-meanings"></div>
+                <div id="popup-pos"></div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
