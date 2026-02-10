@@ -60,7 +60,7 @@ export class ArticleService {
 
   async getFullArticle(id: string) {
     const article = await this.repo.findOneByOrFail({ id });
-    const tokens: Token[] = JSON.parse(article.tokensJson);
+    const tokens = JSON.parse(article.tokensJson) as Token[];
 
     return {
       id: article.id,
